@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Pedra, Papel e Tesoura</title>
+</head>
+
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0px;
+    padding: 0px;
+  }
+
+  body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-items: center;
+  }
+
+
+  .user {
+    width: 50%;
+    height: 50%;
+    margin: auto;
+    background-color: gray;
+  }
+
+  .user h1 {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .user input {
+    height: 30px;
+    width: 50%;
+    margin: auto;
+    padding: 1rem;
+    border-radius: 10px;
+    border: none;
+  }
+
+  .user .display {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    margin: auto;
+    gap: 2rem;
+  }
+
+  .user .display button {
+    width: 50%;
+    padding: 0.5rem;
+    margin: auto;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .user .display button:hover {
+    background-color: green;
+    color: white;
+    font-weight: 700;
+  }
+
+  .rooms {
+    flex-wrap: wrap;
+    flex-direction: row;
+    padding: 1rem;
+    gap: 2rem;
+    display: none;
+  }
+
+  .rooms .card {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .inside_the_hall {
+    background: red;
+    width: 100%;
+    display: none;
+  }
+</style>
+
+<body>
+  <div class="user" id="login">
+    <div class="display">
+      <h1>Digite seu nickname</h1>
+      <input type="text" name="name" id="name" required placeholder="Digite seu name, exemplo: Jogin732">
+      <button onclick="setName()">Jogar</button>
+    </div>
+  </div>
+
+  <div class="rooms" id="rooms">
+  </div>
+
+  <div class="inside_the_hall" id="inside_the_hall">
+  </div>
+
+  <script>
+    const login = document.getElementById('login');
+    const rooms = document.getElementById('rooms');
+    const existLogin = localStorage.getItem("playerName")
+    if (existLogin) {
+      login.style.display = "none";
+      rooms.style.display = "flex";
+    }
+
+    function setName() {
+      const name = document.getElementById('name').value;
+
+      if (name) {
+        localStorage.setItem('playerName', name);
+        login.style.display = "none"
+        rooms.style.display = "flex"
+      }
+    }
+
+
+  </script>
+
+
+  <script>
+    const socket = new WebSocket('ws://localhost:8080');
+
+    socket.onmessage = function (event) {
+      const cards = document.getElementById('rooms');
+      const data = JSON.parse(event.data);
+
+      switch (data.type) {
+        case 'ROOMS_LIST':
+          cards.innerHTML = '';
+          data.rooms.forEach(element => {
+            cards.innerHTML += `
+    <div class="card">
+        <h1 class="roomName">${element.name}</h1>
+        <span class="status">${element.status}</span>
+        <button onclick="joinRoom('${element.name.replace(/'/g, "\\'")}')">Entrar na sala</button>
+    </div>`;
+          });
+          break;
+        case 'MESSAGE':
+
+          break;
+        case 'INSIDE_THE_HALL':
+          const rooms = document.getElementById('rooms');
+          const insideTheHall = document.getElementById('inside_the_hall');
+          rooms.style.display = "none";
+
+          insideTheHall.style.display = "block"
+          break;
+        default:
+          break;
+      }
+
+
+    };
+
+    function joinRoom(roomName) {
+      const user = localStorage.getItem("playerName");
+      if (user) {
+        const message = JSON.stringify({ playerName: user, type: "JOIN_ROOM", room: { name: roomName } })
+        socket.send(message)
+      }
+    }
+  </script>
+</body>
+
+</html>
